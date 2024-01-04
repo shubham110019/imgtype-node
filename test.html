@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Converter</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <div class="container mt-5">
+        <h2>Audio Converter</h2>
+        <input type="file" id="audioFile" accept=".mp3, .wav, .ogg" required>
+        <div class="form-group mt-2">
+            <label for="outputFormat">Choose output format:</label>
+            <select class="form-control" id="outputFormat" required>
+                <option value="mp3">MP3</option>
+                <option value="wav">WAV</option>
+                <option value="ogg">OGG</option>
+            </select>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="convertAudio()">Convert</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg"></script>
+
+    <script>
+        async function convertAudio() {
+            const audioFileInput = document.getElementById('audioFile');
+            const outputFormat = document.getElementById('outputFormat').value;
+
+            if (!audioFileInput.files.length) {
+                alert('Please choose an audio file.');
+                return;
+            }
+
+            const audioFile = audioFileInput.files[0];
+            const audioData = await readFileAsArrayBuffer(audioFile);
+
+            // Load and initialize the FFmpeg library
+            const { createFFmpeg, fetchFile } = FFmpeg;
+            const ffmpeg = createFFmpeg({ log: true });
+            await ffmpeg.load();
+
+            // Use the @ffmpeg/ffmpeg library to convert the audio data
+            const result = await convertWithFFmpeg(ffmpeg, audioData, outputFormat);
+            console.log(result);
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => resolve(event.target.result);
+                reader.onerror = (error) => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function convertWithFFmpeg(ffmpeg, audioData, outputFormat) {
+            // Use the @ffmpeg/ffmpeg library to convert audio data
+            await ffmpeg.FS('writeFile', 'input.wav', new Uint8Array(audioData));
+            await ffmpeg.run('-i', 'input.wav', '-c:a', 'libmp3lame', `output.${outputFormat}`);
+
+            // Get the converted audio data
+            const data = ffmpeg.FS('readFile', `output.${outputFormat}`);
+
+            // Cleanup
+            await ffmpeg.FS('unlink', 'input.wav');
+            await ffmpeg.FS('unlink', `output.${outputFormat}`);
+
+            // Return the result or do something with the converted audio
+            return 'Conversion completed!';
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body class="container mt-5">
+    <h1 class="mb-4">YouTube Video Downloader</h1>
+
+    <div class="form-group">
+        <label for="videoUrl">Enter YouTube Video URL:</label>
+        <input type="text" class="form-control" id="videoUrl" placeholder="https://www.youtube.com/watch?v=VIDEO_ID">
+    </div>
+
+    <button class="btn btn-primary" onclick="downloadVideo()">Download MP3</button>
+
+    <div id="downloadStatus" class="mt-3"></div>
+    <div id="audioPlayer" class="mt-3"></div>
+
+    <button class="btn btn-success mt-3" id="downloadAudioButton" style="display: none;">Download Audio</button>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+
+        async function downloadVideo() {
+            const videoUrl = document.getElementById('videoUrl').value;
+            const downloadStatus = document.getElementById('downloadStatus');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const downloadAudioButton = document.getElementById('downloadAudioButton');
+
+            if (videoUrl.trim() === '') {
+                downloadStatus.innerHTML = '<div class="alert alert-danger" role="alert">Please enter a valid YouTube video URL.</div>';
+                return;
+            }
+
+            downloadStatus.innerHTML = '<div class="alert alert-info" role="alert">Downloading...</div>';
+
+            try {
+                const response = await fetch(`http://localhost:3000/download?videoUrl=${encodeURIComponent(videoUrl)}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                console.log(response);
+
+                // Display the response data on the page
+                downloadStatus.innerHTML = '<div class="alert alert-success" role="alert">Download complete.</div>';
+
+                // Create an audio element and set its source to the data URL
+                const audioElement = document.createElement('audio');
+                audioElement.controls = true;
+                audioElement.src = URL.createObjectURL(await response.blob());
+
+                // Append the audio element to the page
+                audioPlayer.innerHTML = '';
+                audioPlayer.appendChild(audioElement);
+
+                // Show the download audio button
+                downloadAudioButton.style.display = 'block';
+
+                // Add click event listener to download audio button
+                downloadAudioButton.addEventListener('click', () => {
+                    // Create a download link and trigger the download
+                    const a = document.createElement('a');
+                    a.href = audioElement.src;
+                    a.download = 'downloaded_audio.mp3';
+                    a.click();
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                downloadStatus.innerHTML = '<div class="alert alert-danger" role="alert">An error occurred during the download.</div>';
+            }
+        }
+
+    </script>
+</body>
+
+</html>
